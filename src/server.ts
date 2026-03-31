@@ -49,6 +49,33 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "ticket-fighter-bot", timestamp: new Date().toISOString() });
 });
 
+// --- Gmail OAuth callback ---
+
+app.get("/auth/gmail/callback", async (req, res) => {
+  const code = req.query.code as string | undefined;
+  if (!code) {
+    res.status(400).send("Missing authorization code");
+    return;
+  }
+
+  try {
+    // Exchange the code for tokens via ticket-fighter
+    // The gmail-api module handles token storage
+    const { exchangeCode } = await import(
+      /* webpackIgnore: true */
+      process.env.TF_GMAIL_API_PATH || "../../tf/dist/gmail-api.js"
+    );
+    await exchangeCode(code);
+    res.send(
+      `<html><body style="font-family:monospace;background:#08080A;color:#F0EBE0;display:flex;align-items:center;justify-content:center;min-height:100vh">` +
+      `<div style="text-align:center"><h1 style="color:#FF2B2B">Gmail Connected!</h1>` +
+      `<p>You can close this window. Ticket Fighter can now search your Gmail for dispute decisions.</p></div></body></html>`
+    );
+  } catch (err) {
+    res.status(500).send(`OAuth error: ${(err as Error).message}`);
+  }
+});
+
 // --- Webhook ---
 
 function verifyWebhook(body: string, signature: string | undefined): boolean {

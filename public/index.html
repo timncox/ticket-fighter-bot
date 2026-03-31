@@ -3,36 +3,575 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ticket Fighter Bot</title>
+  <title>Ticket Fighter — Fight Every Parking Ticket</title>
+  <meta name="description" content="AI-powered parking ticket detection and dispute bot. Monitor your plates, get instant alerts, and fight back automatically.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg: #08080A;
+      --surface: #111114;
+      --border: #1E1E22;
+      --cream: #F0EBE0;
+      --muted: #6B6B70;
+      --red: #FF2B2B;
+      --red-glow: rgba(255, 43, 43, 0.15);
+      --red-dim: #CC2222;
+      --gold: #C9A84C;
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e5e5e5; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-    .container { max-width: 560px; padding: 48px 24px; text-align: center; }
-    h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; color: #fff; }
-    .subtitle { color: #a3a3a3; font-size: 1.1rem; margin-bottom: 32px; }
-    .commands { text-align: left; background: #171717; border: 1px solid #262626; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
-    .commands h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #737373; margin-bottom: 16px; }
-    .cmd { margin-bottom: 12px; }
-    .cmd code { background: #262626; padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.9rem; color: #22d3ee; }
-    .cmd span { color: #a3a3a3; font-size: 0.9rem; }
-    .cta { color: #737373; font-size: 0.9rem; }
-    .cta a { color: #22d3ee; text-decoration: none; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'IBM Plex Mono', monospace;
+      background: var(--bg);
+      color: var(--cream);
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* --- Grain overlay --- */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* --- Hero --- */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      padding: 80px 24px 60px;
+      overflow: hidden;
+    }
+
+    /* Angled red stripe */
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -20%;
+      left: -10%;
+      width: 120%;
+      height: 8px;
+      background: var(--red);
+      transform: rotate(-3deg);
+      box-shadow: 0 0 80px var(--red-glow), 0 0 200px var(--red-glow);
+      animation: stripe-in 1s ease-out 0.3s both;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -20%;
+      left: -10%;
+      width: 120%;
+      height: 4px;
+      background: var(--red);
+      transform: rotate(2deg);
+      opacity: 0.4;
+      animation: stripe-in 1s ease-out 0.5s both;
+    }
+
+    @keyframes stripe-in {
+      from { transform: rotate(-3deg) translateX(-100%); opacity: 0; }
+      to { transform: rotate(-3deg) translateX(0); opacity: 1; }
+    }
+
+    .hero-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--red);
+      border: 1px solid var(--red);
+      padding: 6px 16px;
+      border-radius: 2px;
+      margin-bottom: 40px;
+      animation: fade-up 0.6s ease-out 0.2s both;
+    }
+
+    .hero-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(4.5rem, 15vw, 13rem);
+      line-height: 0.88;
+      text-align: center;
+      letter-spacing: -0.02em;
+      color: var(--cream);
+      animation: fade-up 0.8s ease-out 0.4s both;
+    }
+
+    .hero-title .red { color: var(--red); }
+
+    .hero-sub {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+      max-width: 480px;
+      line-height: 1.7;
+      margin-top: 32px;
+      animation: fade-up 0.8s ease-out 0.6s both;
+    }
+
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 40px;
+      padding: 14px 32px;
+      background: var(--red);
+      color: #fff;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.25rem;
+      letter-spacing: 0.08em;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+      animation: fade-up 0.8s ease-out 0.8s both;
+    }
+
+    .hero-cta:hover { background: var(--red-dim); transform: translateY(-2px); }
+    .hero-cta svg { width: 18px; height: 18px; }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* --- Ticker --- */
+    .ticker-wrap {
+      width: 100%;
+      overflow: hidden;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      background: var(--surface);
+    }
+
+    .ticker {
+      display: flex;
+      gap: 48px;
+      animation: scroll 20s linear infinite;
+      width: max-content;
+    }
+
+    .ticker span {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1rem;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .ticker span.dot { color: var(--red); }
+
+    @keyframes scroll {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    /* --- How it works --- */
+    .section {
+      padding: 100px 24px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      line-height: 0.95;
+      margin-bottom: 60px;
+      color: var(--cream);
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 2px;
+    }
+
+    .step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 36px 28px;
+      position: relative;
+      transition: border-color 0.3s;
+    }
+
+    .step:hover { border-color: var(--red); }
+
+    .step-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3rem;
+      color: var(--red);
+      opacity: 0.3;
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+
+    .step h3 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.04em;
+      margin-bottom: 12px;
+      color: var(--cream);
+    }
+
+    .step p {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    /* --- Commands --- */
+    .commands-grid {
+      display: grid;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+
+    .cmd-row {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      background: var(--bg);
+      transition: background 0.2s;
+    }
+
+    .cmd-row:hover { background: var(--surface); }
+
+    .cmd-code {
+      padding: 16px 20px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--red);
+      border-right: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .cmd-desc {
+      padding: 16px 20px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .cmd-header .cmd-code,
+    .cmd-header .cmd-desc {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 12px 20px;
+      background: var(--surface);
+    }
+
+    /* --- Cities --- */
+    .cities {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    .city-tag {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+      padding: 10px 24px;
+      border: 1px solid var(--border);
+      color: var(--cream);
+      background: var(--surface);
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .city-tag:hover { border-color: var(--red); color: var(--red); }
+    .city-tag.active { border-color: var(--red); color: var(--red); background: var(--red-glow); }
+
+    /* --- MMP section --- */
+    .mmp-section {
+      text-align: center;
+      padding: 120px 24px;
+      position: relative;
+    }
+
+    .mmp-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1px;
+      height: 80px;
+      background: linear-gradient(to bottom, transparent, var(--red));
+    }
+
+    .mmp-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold);
+      border: 1px solid var(--gold);
+      padding: 5px 14px;
+      border-radius: 2px;
+      margin-bottom: 24px;
+      opacity: 0.8;
+    }
+
+    .mmp-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      margin-bottom: 16px;
+    }
+
+    .mmp-desc {
+      font-size: 0.8rem;
+      color: var(--muted);
+      max-width: 520px;
+      margin: 0 auto 32px;
+      line-height: 1.7;
+    }
+
+    .mmp-url {
+      display: inline-block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--cream);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 12px 24px;
+      letter-spacing: 0.02em;
+      transition: border-color 0.2s;
+    }
+
+    .mmp-url:hover { border-color: var(--red); }
+
+    /* --- Footer --- */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 960px;
+      margin: 0 auto;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    footer a { color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    footer a:hover { color: var(--red); }
+
+    /* --- Responsive --- */
+    @media (max-width: 640px) {
+      .cmd-row { grid-template-columns: 1fr; }
+      .cmd-code { border-right: none; border-bottom: 1px solid var(--border); padding: 12px 16px; }
+      .cmd-desc { padding: 12px 16px; }
+      .hero { padding: 60px 16px 40px; }
+      .section { padding: 60px 16px; }
+      .cities { gap: 8px; }
+      .city-tag { font-size: 0.95rem; padding: 8px 16px; }
+      footer { flex-direction: column; gap: 8px; text-align: center; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Ticket Fighter Bot</h1>
-    <p class="subtitle">Parking ticket detection & dispute assistant on MMP</p>
-    <div class="commands">
-      <h2>Commands (DM @ticket_fighter)</h2>
-      <div class="cmd"><code>add ABC1234 NY nyc</code> <span>— Monitor a plate</span></div>
-      <div class="cmd"><code>check</code> <span>— Scan for tickets now</span></div>
-      <div class="cmd"><code>analyze 1234567 nyc</code> <span>— Get defense strategy</span></div>
-      <div class="cmd"><code>dispute 1234567 nyc</code> <span>— Generate dispute</span></div>
-      <div class="cmd"><code>submit 1234567 nyc</code> <span>— Submit to city portal</span></div>
-      <div class="cmd"><code>status 1234567 nyc</code> <span>— Check outcome</span></div>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-badge">MMP Bot</div>
+    <h1 class="hero-title">
+      FIGHT<br><span class="red">EVERY</span><br>TICKET
+    </h1>
+    <p class="hero-sub">
+      AI-powered parking ticket detection and dispute automation.
+      Add your plates, get instant alerts, and fight back &mdash; all through a single chat.
+    </p>
+    <a href="#start" class="hero-cta">
+      MESSAGE @TICKET_FIGHTER
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+  </section>
+
+  <!-- City ticker -->
+  <div class="ticker-wrap">
+    <div class="ticker">
+      <span>NEW YORK CITY</span><span class="dot">&bull;</span>
+      <span>CHICAGO</span><span class="dot">&bull;</span>
+      <span>ORLANDO</span><span class="dot">&bull;</span>
+      <span>BOSTON</span><span class="dot">&bull;</span>
+      <span>MIAMI</span><span class="dot">&bull;</span>
+      <span>CHARLOTTE</span><span class="dot">&bull;</span>
+      <span>DENVER</span><span class="dot">&bull;</span>
+      <span>DALLAS</span><span class="dot">&bull;</span>
+      <span>WASHINGTON DC</span><span class="dot">&bull;</span>
+      <span>ATLANTA</span><span class="dot">&bull;</span>
+      <span>SAN FRANCISCO</span><span class="dot">&bull;</span>
+      <span>BALTIMORE</span><span class="dot">&bull;</span>
+      <span>DETROIT</span><span class="dot">&bull;</span>
+      <span>PITTSBURGH</span><span class="dot">&bull;</span>
+      <span>SAN DIEGO</span><span class="dot">&bull;</span>
+      <!-- duplicate for seamless loop -->
+      <span>NEW YORK CITY</span><span class="dot">&bull;</span>
+      <span>CHICAGO</span><span class="dot">&bull;</span>
+      <span>ORLANDO</span><span class="dot">&bull;</span>
+      <span>BOSTON</span><span class="dot">&bull;</span>
+      <span>MIAMI</span><span class="dot">&bull;</span>
+      <span>CHARLOTTE</span><span class="dot">&bull;</span>
+      <span>DENVER</span><span class="dot">&bull;</span>
+      <span>DALLAS</span><span class="dot">&bull;</span>
+      <span>WASHINGTON DC</span><span class="dot">&bull;</span>
+      <span>ATLANTA</span><span class="dot">&bull;</span>
+      <span>SAN FRANCISCO</span><span class="dot">&bull;</span>
+      <span>BALTIMORE</span><span class="dot">&bull;</span>
+      <span>DETROIT</span><span class="dot">&bull;</span>
+      <span>PITTSBURGH</span><span class="dot">&bull;</span>
+      <span>SAN DIEGO</span><span class="dot">&bull;</span>
     </div>
-    <p class="cta">Message <a href="https://mmp.chat">@ticket_fighter on MMP</a> to get started</p>
   </div>
+
+  <!-- How it works -->
+  <section class="section">
+    <div class="section-label">How It Works</div>
+    <h2 class="section-title">THREE ROUNDS.<br>ZERO MERCY.</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <h3>REGISTER YOUR PLATES</h3>
+        <p>Add your license plates and city. The bot starts monitoring city violation portals immediately.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <h3>GET INSTANT ALERTS</h3>
+        <p>New ticket detected? You get a DM within minutes. Every 30 minutes, the bot scans every portal for every plate.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <h3>FIGHT BACK</h3>
+        <p>The bot gathers evidence, pulls Street View imagery, looks up the traffic rule, finds common defenses, and generates your dispute.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Commands -->
+  <section class="section">
+    <div class="section-label">Commands</div>
+    <h2 class="section-title">YOUR ARSENAL</h2>
+    <div class="commands-grid">
+      <div class="cmd-row cmd-header">
+        <div class="cmd-code">Command</div>
+        <div class="cmd-desc">What it does</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-code">add ABC1234 NY nyc</div>
+        <div class="cmd-desc">Start monitoring a license plate for new tickets</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-code">remove ABC1234 nyc</div>
+        <div class="cmd-desc">Stop monitoring a plate</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-code">plates</div>
+        <div class="cmd-desc">List all your monitored plates</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-code">check</div>
+        <div class="cmd-desc">Scan all your plates for tickets right now</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-code">tickets</div>
+        <div class="cmd-desc">Show all known tickets across your plates</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-code">analyze 1234567890 nyc</div>
+        <div class="cmd-desc">Gather evidence, defenses, and Street View imagery for a ticket</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-code">dispute 1234567890 nyc</div>
+        <div class="cmd-desc">Generate a formatted dispute with arguments and evidence</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-code">submit 1234567890 nyc</div>
+        <div class="cmd-desc">Submit the dispute directly to the city's violation portal</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-code">status 1234567890 nyc</div>
+        <div class="cmd-desc">Check the outcome of a submitted dispute</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cities -->
+  <section class="section">
+    <div class="section-label">Coverage</div>
+    <h2 class="section-title">22 CITIES.<br>GROWING FAST.</h2>
+    <p style="font-size: 0.8rem; color: var(--muted); line-height: 1.7; margin-bottom: 8px;">
+      Ticket Fighter scrapes city violation portals directly. No API keys, no middlemen.
+    </p>
+    <div class="cities">
+      <div class="city-tag active">NYC</div>
+      <div class="city-tag active">CHICAGO</div>
+      <div class="city-tag active">ORLANDO</div>
+      <div class="city-tag">BOSTON</div>
+      <div class="city-tag">MIAMI</div>
+      <div class="city-tag">CHARLOTTE</div>
+      <div class="city-tag">DENVER</div>
+      <div class="city-tag">DALLAS</div>
+      <div class="city-tag">RALEIGH</div>
+      <div class="city-tag">BALTIMORE</div>
+      <div class="city-tag">DC</div>
+      <div class="city-tag">ATLANTA</div>
+      <div class="city-tag">SAN DIEGO</div>
+      <div class="city-tag">DETROIT</div>
+      <div class="city-tag">PITTSBURGH</div>
+      <div class="city-tag">MILWAUKEE</div>
+      <div class="city-tag">SACRAMENTO</div>
+      <div class="city-tag">NEW ORLEANS</div>
+      <div class="city-tag">SAN FRANCISCO</div>
+      <div class="city-tag">CLEVELAND</div>
+      <div class="city-tag">COLUMBUS</div>
+      <div class="city-tag">OAKLAND</div>
+    </div>
+  </section>
+
+  <!-- MMP / CTA -->
+  <section class="mmp-section" id="start">
+    <div class="mmp-badge">Powered by MMP</div>
+    <h2 class="mmp-title">MESSAGE THE BOT.<br>START FIGHTING.</h2>
+    <p class="mmp-desc">
+      Ticket Fighter runs on <a href="https://mmp.chat" style="color: var(--cream); text-decoration: underline; text-underline-offset: 3px;">MMP</a> &mdash; the messaging protocol for AI assistants.
+      Add the MMP server to Claude, ChatGPT, or any MCP-compatible client and DM <strong style="color: var(--cream);">@ticket_fighter</strong>.
+    </p>
+    <div class="mmp-url">mmp.chat/mcp</div>
+  </section>
+
+  <footer>
+    <span>&copy; 2026 Ticket Fighter</span>
+    <a href="https://mmp.chat">mmp.chat</a>
+  </footer>
+
 </body>
 </html>

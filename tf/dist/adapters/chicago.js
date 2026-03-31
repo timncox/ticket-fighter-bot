@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { chromium } from "playwright";
+import { isCaptchaSolverEnabled, solveHCaptcha, extractHCaptchaSiteKey, injectHCaptchaToken, } from "../captcha-solver.js";
 const codesPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "../codes/chicago-codes.json");
 const CHICAGO_CODES = JSON.parse(fs.readFileSync(codesPath, "utf-8"));
 function getCodeInfo(code) {
@@ -87,7 +88,8 @@ const LOOKUP_URL = "https://webapps1.chicago.gov/payments-web/#/validatedFlow?ci
 const EHEARING_URL = "https://parkingtickets.chicago.gov/EHearingWeb/home";
 const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 async function scrapeLookup(plate, state) {
-    const browser = await chromium.launch({ headless: false });
+    const headless = isCaptchaSolverEnabled();
+    const browser = await chromium.launch({ headless });
     try {
         const context = await browser.newContext({ userAgent: USER_AGENT });
         const page = await context.newPage();
@@ -97,7 +99,21 @@ async function scrapeLookup(plate, state) {
         await inputs.nth(0).fill(plate);
         const stateSelect = page.locator("select").first();
         await stateSelect.selectOption(state.toUpperCase());
-        console.error("[ticket-fighter] CHICAGO: hCaptcha detected. Please solve the CAPTCHA in the browser window, then press Submit. Waiting up to 120 seconds...");
+        // Solve CAPTCHA automatically if solver is available
+        if (headless) {
+            const siteKey = await extractHCaptchaSiteKey(page);
+            if (siteKey) {
+                const token = await solveHCaptcha(LOOKUP_URL, siteKey);
+                await injectHCaptchaToken(page, token);
+                // Click submit after injecting token
+                const submitBtn = page.locator("button[type='submit'], input[type='submit']").first();
+                if (await submitBtn.count() > 0)
+                    await submitBtn.click();
+            }
+        }
+        else {
+            console.error("[ticket-fighter] CHICAGO: hCaptcha detected. Please solve the CAPTCHA in the browser window, then press Submit. Waiting up to 120 seconds...");
+        }
         await page.waitForSelector('.ticket-result, .violation-result, [class*="result"], [class*="ticket"]', {
             timeout: 120000,
         });
