@@ -159,6 +159,18 @@ async function handleDM(msg: MmpWebhookPayload["message"] & {}): Promise<void> {
   // Ensure user exists
   upsertUser(fromId, fromHandle);
 
+  // --- gmail / setup gmail ---
+  if (body === "gmail" || body === "setup gmail" || body === "connect gmail") {
+    try {
+      const result = await tfClient.callTool("setup_gmail", {});
+      const text = result.content?.[0]?.text ?? "";
+      await sendDM(fromHandle, text);
+    } catch (err) {
+      await sendDM(fromHandle, `Error setting up Gmail: ${(err as Error).message}`);
+    }
+    return;
+  }
+
   // --- add <plate> <state> <city> ---
   if (body.startsWith("add ")) {
     const parts = raw.replace(/^add\s+/i, "").trim().split(/\s+/);
@@ -509,6 +521,7 @@ async function handleDM(msg: MmpWebhookPayload["message"] & {}): Promise<void> {
     `  dispute <violation#> <city> — Generate dispute\n` +
     `  submit <violation#> <city> — Submit dispute\n` +
     `  status <violation#> <city> — Check dispute outcome\n` +
+    `  gmail — Connect Gmail for decision tracking\n` +
     `  help — Show this message\n` +
     `\n` +
     `Supported cities: ${SUPPORTED_CITIES.join(", ")}\n` +

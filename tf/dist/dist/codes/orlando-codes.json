@@ -1,0 +1,83 @@
+{
+    "39.14(1)": {
+        "description": "Expired tag/registration",
+        "fine": 40,
+        "defenses": [
+            "Provide proof of valid registration at the time of the citation to qualify for $5 dismissal",
+            "Demonstrate registration was renewed before the citation was issued",
+            "Show DMV processing delay caused the apparent lapse in registration"
+        ]
+    },
+    "39.41": {
+        "description": "Parking meter violation",
+        "fine": 30,
+        "defenses": [
+            "Provide receipt or transaction record showing meter was paid for the cited period to qualify for $5 dismissal",
+            "Document that the meter was malfunctioning or out of service at the time",
+            "Show that the pay station was inoperable and no alternative was available"
+        ]
+    },
+    "39.42": {
+        "description": "No parking zone violation",
+        "fine": 40,
+        "defenses": [
+            "Show that no parking signs were missing, obscured, or improperly posted",
+            "Demonstrate the vehicle was not in the no parking zone",
+            "Prove the zone designation was unclear or ambiguous"
+        ]
+    },
+    "39.43": {
+        "description": "Fire lane parking violation",
+        "fine": 75,
+        "defenses": [
+            "Prove the fire lane markings were faded, missing, or not clearly visible",
+            "Show the vehicle was not blocking fire lane access",
+            "Demonstrate a genuine emergency required the temporary stop"
+        ]
+    },
+    "39.44": {
+        "description": "Handicap zone parking violation",
+        "fine": 250,
+        "defenses": [
+            "Provide valid disabled parking permit or license plate documentation in effect at the time",
+            "Show the permit was properly displayed but overlooked by the officer",
+            "Demonstrate the space was not properly marked as a handicap zone"
+        ]
+    },
+    "39.45": {
+        "description": "Restricted zone parking violation",
+        "fine": 40,
+        "defenses": [
+            "Show that restriction signage was absent, hidden, or ambiguous",
+            "Demonstrate authorization or permit to park in the restricted area",
+            "Prove the vehicle was not in the restricted zone at the cited time"
+        ]
+    },
+    "39.46": {
+        "description": "Overtime parking violation",
+        "fine": 30,
+        "defenses": [
+            "Provide evidence the vehicle arrived within the allowed time period",
+            "Show that the time limit signage was unclear or missing",
+            "Demonstrate a documented emergency required staying beyond the time limit"
+        ]
+    },
+    "39.47": {
+        "description": "Parking on sidewalk or grass",
+        "fine": 40,
+        "defenses": [
+            "Prove the vehicle was not on the sidewalk or grass at the time of citation",
+            "Show the area was not clearly designated as off-limits for parking",
+            "Demonstrate a temporary emergency required the vehicle's placement"
+        ]
+    },
+    "39.48": {
+        "description": "Double parking violation",
+        "fine": 40,
+        "defenses": [
+            "Show that the vehicle was properly parked at a legal location",
+            "Demonstrate a brief stop was necessitated by an emergency",
+            "Prove the citation location description does not match the vehicle's actual position"
+        ]
+    }
+}

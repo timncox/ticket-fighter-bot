@@ -1,0 +1,82 @@
+{
+  "P101": {
+    "description": "Expired meter",
+    "fine": 50,
+    "defenses": [
+      "Meter was broken or malfunctioning at the time of parking",
+      "Payment receipt or ParkMobile/Passport app confirmation shows time had not expired",
+      "Meter displayed an error message and could not accept payment",
+      "Officer issued the citation before the meter actually expired"
+    ]
+  },
+  "P102": {
+    "description": "No parking/standing — prohibited at all times",
+    "fine": 100,
+    "defenses": [
+      "Sign was missing, obscured, or illegible at the time of the violation",
+      "Vehicle was actively loading or unloading passengers",
+      "Emergency circumstances required the stop",
+      "No Parking sign placement did not conform to DDOT specifications"
+    ]
+  },
+  "P103": {
+    "description": "Rush hour — no parking during designated hours",
+    "fine": 100,
+    "defenses": [
+      "Citation was issued outside the posted rush hour restriction hours",
+      "Sign was missing, damaged, or illegible at the location",
+      "Posted hours were ambiguous or conflicting signs created confusion",
+      "Vehicle was gone before the restriction period began per timestamp evidence"
+    ]
+  },
+  "P104": {
+    "description": "Residential permit parking — no permit displayed",
+    "fine": 50,
+    "defenses": [
+      "Valid residential permit was displayed in the windshield but may have been overlooked",
+      "Vehicle is registered at that address and permit had been applied for",
+      "Permit was recently issued and sticker had not yet been received",
+      "Vehicle is exempt under the DC residential parking rules (e.g., visitor pass was displayed)"
+    ]
+  },
+  "P105": {
+    "description": "Street cleaning — no parking during sweeping hours",
+    "fine": 50,
+    "defenses": [
+      "Street cleaning was officially suspended on that date (holiday or other suspension)",
+      "Sign was missing, obscured, or illegible at the time of the violation",
+      "Vehicle was moved before the street sweeper passed",
+      "Conflicting or improperly placed signs created genuine ambiguity about the restriction"
+    ]
+  },
+  "P106": {
+    "description": "Fire hydrant — parked within 10 feet",
+    "fine": 100,
+    "defenses": [
+      "Vehicle was parked more than 10 feet from the hydrant (measurement dispute)",
+      "Hydrant was a private or out-of-service hydrant not subject to the standard restriction",
+      "Hydrant location was not clearly visible or marked",
+      "Vehicle was attended and would have moved immediately upon request"
+    ]
+  },
+  "P107": {
+    "description": "Double parking — obstructing traffic lane",
+    "fine": 100,
+    "defenses": [
+      "Vehicle was actively loading or unloading commercial goods at the time",
+      "No legal parking space was available within a reasonable distance",
+      "Vehicle was attended and positioned to move immediately",
+      "Location does not constitute double parking under DC traffic regulations"
+    ]
+  },
+  "P108": {
+    "description": "Expired registration/tags",
+    "fine": 100,
+    "defenses": [
+      "Registration was renewed prior to or on the date of the violation",
+      "Renewal was pending due to a DC DMV processing delay",
+      "Documentation shows renewal was submitted before the expiration date",
+      "Vehicle is registered in another state and was compliant under that jurisdiction's rules"
+    ]
+  }
+}

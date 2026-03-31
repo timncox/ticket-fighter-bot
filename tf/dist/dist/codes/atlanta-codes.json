@@ -1,0 +1,74 @@
+{
+  "ATL-101": {
+    "description": "Expired meter violation",
+    "fine": 35,
+    "defenses": [
+      "Provide a payment receipt or mobile app transaction record showing the meter was paid for the cited time period",
+      "Document that the meter or pay station was malfunctioning or out of service at the time of the citation",
+      "Show that the pay station was inoperable and no alternative payment method was reasonably available"
+    ]
+  },
+  "ATL-102": {
+    "description": "No parking zone violation",
+    "fine": 75,
+    "defenses": [
+      "Demonstrate that no parking signs were missing, obscured by overgrowth, or improperly posted",
+      "Prove the vehicle was not located within the posted no-parking zone boundaries",
+      "Show that temporary signage conflicted with permanent signage, creating ambiguity"
+    ]
+  },
+  "ATL-103": {
+    "description": "Fire lane parking violation",
+    "fine": 150,
+    "defenses": [
+      "Prove the fire lane markings on the pavement were faded, missing, or not clearly visible at the time",
+      "Show that posted fire lane signs were absent, damaged, or obstructed",
+      "Demonstrate a genuine emergency required a brief temporary stop in the fire lane"
+    ]
+  },
+  "ATL-104": {
+    "description": "Handicap zone parking violation",
+    "fine": 500,
+    "defenses": [
+      "Provide documentation of a valid Georgia disabled parking permit or disabled veteran plate in effect at the time",
+      "Show the permit was properly displayed in the vehicle but overlooked by the issuing officer",
+      "Demonstrate the handicap space was not properly marked with required signage and pavement markings"
+    ]
+  },
+  "ATL-105": {
+    "description": "Double parking violation",
+    "fine": 75,
+    "defenses": [
+      "Show that the vehicle was lawfully parked at a legal curbside location and not obstructing traffic",
+      "Demonstrate that a brief stop was necessitated by a documented emergency or loading/unloading with hazard lights",
+      "Prove the citation location description does not match the vehicle's actual position at the cited time"
+    ]
+  },
+  "ATL-106": {
+    "description": "Residential permit parking violation",
+    "fine": 75,
+    "defenses": [
+      "Provide a valid City of Atlanta residential parking permit for the cited zone displayed in the vehicle",
+      "Show the permit was properly affixed to the windshield but not visible to the officer due to angle or glare",
+      "Demonstrate the zone boundary signage was unclear or that the vehicle was parked outside the restricted zone"
+    ]
+  },
+  "ATL-107": {
+    "description": "Expired vehicle tag/registration",
+    "fine": 100,
+    "defenses": [
+      "Provide proof of valid Georgia registration in effect on the date of the citation",
+      "Show that the Georgia DMV was processing a renewal application at the time and the delay was beyond your control",
+      "Document that the renewal sticker was applied but fell off or was obscured, and provide registration paperwork"
+    ]
+  },
+  "ATL-108": {
+    "description": "Street cleaning/sweeping zone violation",
+    "fine": 45,
+    "defenses": [
+      "Show that posted street cleaning signs were missing, damaged, or did not clearly specify the day and time restrictions",
+      "Provide evidence that the vehicle was moved before the street cleaning window began and was re-cited in error",
+      "Demonstrate that temporary construction or an event blocked legal parking alternatives in the area"
+    ]
+  }
+}

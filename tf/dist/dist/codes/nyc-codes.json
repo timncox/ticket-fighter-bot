@@ -1,0 +1,163 @@
+{
+  "14": {
+    "description": "No standing — standing or parking prohibited at all times",
+    "fine": 115,
+    "defenses": [
+      "Sign was missing, obscured, or illegible at the time of the violation",
+      "Vehicle was actively loading or unloading passengers",
+      "Emergency circumstances required the stop",
+      "No Standing sign placement did not conform to NYC DOT specifications"
+    ]
+  },
+  "16": {
+    "description": "No standing except authorized vehicles",
+    "fine": 115,
+    "defenses": [
+      "Vehicle qualifies as an authorized vehicle under the posted restriction",
+      "Sign was missing, obscured, or illegible",
+      "Permit or placard visible and valid at time of issuance",
+      "Sign placement did not conform to NYC DOT specifications"
+    ]
+  },
+  "17": {
+    "description": "No standing — snow emergency",
+    "fine": 65,
+    "defenses": [
+      "Snow emergency was not officially declared at the time of the violation",
+      "Vehicle was moved before enforcement began",
+      "Sign indicating snow emergency route was missing or obscured",
+      "Vehicle is exempt under snow emergency rules"
+    ]
+  },
+  "19": {
+    "description": "No standing — bus stop",
+    "fine": 115,
+    "defenses": [
+      "Bus stop sign was missing, obscured, or illegible",
+      "Vehicle was actively loading or unloading passengers (momentary stop)",
+      "Bus stop markings were absent or faded beyond recognition",
+      "Sign placement did not conform to NYC DOT specifications"
+    ]
+  },
+  "20": {
+    "description": "No parking — specific days/times as posted",
+    "fine": 65,
+    "defenses": [
+      "Sign was missing, obscured, or illegible at the time of the violation",
+      "Violation was issued outside the restricted hours or days",
+      "Conflicting signs created ambiguity about the restriction",
+      "Sign placement did not conform to NYC DOT specifications"
+    ]
+  },
+  "21": {
+    "description": "No parking — street cleaning",
+    "fine": 65,
+    "defenses": [
+      "Sign was missing, obscured, or illegible",
+      "Street cleaning did not occur on that day (e.g., holiday suspension)",
+      "Alternate side parking was officially suspended on that date",
+      "Vehicle was moved before the street cleaner passed",
+      "Conflicting signs created genuine ambiguity"
+    ]
+  },
+  "37": {
+    "description": "Expired meter",
+    "fine": 65,
+    "defenses": [
+      "Meter was broken or malfunctioning at the time of parking",
+      "Receipt or payment confirmation shows time had not yet expired",
+      "Meter displayed an error and could not accept payment",
+      "Payment was made via ParkNYC app and confirmation exists"
+    ]
+  },
+  "38": {
+    "description": "No parking — no muni-meter receipt displayed",
+    "fine": 65,
+    "defenses": [
+      "Receipt was purchased and displayed but may have fallen or been displaced",
+      "Muni-meter was out of service at the time",
+      "ParkNYC app payment was active and can be confirmed",
+      "Receipt was valid and placed on dashboard per instructions"
+    ]
+  },
+  "40": {
+    "description": "No parking — within 15 feet of a fire hydrant",
+    "fine": 115,
+    "defenses": [
+      "Vehicle was parked more than 15 feet from the hydrant (measurement dispute)",
+      "Hydrant was a private hydrant not subject to the restriction",
+      "Hydrant location was not clearly visible or marked",
+      "Vehicle was actively attended and would have moved immediately upon request"
+    ]
+  },
+  "46": {
+    "description": "Double parking",
+    "fine": 115,
+    "defenses": [
+      "Vehicle was actively loading or unloading commercial goods",
+      "No legal parking was available within a reasonable distance",
+      "Vehicle was attended and prepared to move immediately",
+      "Location is outside a commercial district where brief double parking is tolerated"
+    ]
+  },
+  "47": {
+    "description": "Double parking — midtown Manhattan core",
+    "fine": 165,
+    "defenses": [
+      "Vehicle was not located within the defined midtown core boundaries",
+      "Active loading or unloading of commercial goods was in progress",
+      "Vehicle was attended and immediately ready to move",
+      "Posted signage defining the zone was missing or illegible"
+    ]
+  },
+  "48": {
+    "description": "Blocking a bike lane",
+    "fine": 115,
+    "defenses": [
+      "No bike lane markings or signage were present at that location",
+      "Vehicle was actively loading or unloading",
+      "Bike lane was temporarily closed or obstructed by construction",
+      "Vehicle was a authorized emergency or service vehicle"
+    ]
+  },
+  "69": {
+    "description": "Failure to display a registration sticker",
+    "fine": 65,
+    "defenses": [
+      "Registration was current; sticker was lost, stolen, or delayed in mail",
+      "Vehicle was recently registered and sticker had not yet been received",
+      "Registration renewal documentation can be produced showing compliance",
+      "Sticker was affixed but may have been obscured at time of inspection"
+    ]
+  },
+  "70": {
+    "description": "Expired registration",
+    "fine": 65,
+    "defenses": [
+      "Registration was renewed prior to or on the date of the violation",
+      "Renewal was pending due to a DMV processing delay",
+      "Documentation shows renewal was submitted before the expiration date",
+      "Vehicle is registered out of state and was compliant under that state's rules"
+    ]
+  },
+  "71": {
+    "description": "Expired inspection sticker",
+    "fine": 65,
+    "defenses": [
+      "Inspection was completed prior to or on the date of the violation",
+      "Inspection appointment was scheduled and vehicle was in compliance process",
+      "Sticker was affixed but officer may have misread the expiration date",
+      "Vehicle qualifies for an exemption from periodic inspection requirements"
+    ]
+  },
+  "78": {
+    "description": "Nighttime parking of a commercial vehicle on a residential street",
+    "fine": 65,
+    "defenses": [
+      "Vehicle does not meet the definition of a commercial vehicle under NYC Admin Code",
+      "Street is not a designated residential street under the applicable rules",
+      "Parking occurred outside the prohibited nighttime hours",
+      "Vehicle displays proper permits allowing overnight residential parking"
+    ]
+  }
+}
