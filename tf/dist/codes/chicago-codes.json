@@ -1,0 +1,102 @@
+{
+  "0964100": {
+    "description": "Expired meter",
+    "fine": 65,
+    "defenses": [
+      "Meter was malfunctioning or out of service at time of citation",
+      "Paid receipt or mobile app confirmation showing valid payment",
+      "Sign indicated free parking or no meter enforcement at that hour",
+      "Vehicle was not parked beyond the time shown on the meter receipt"
+    ]
+  },
+  "0964125": {
+    "description": "No city sticker",
+    "fine": 200,
+    "defenses": [
+      "City sticker was properly displayed but may have been obscured or fallen",
+      "Vehicle was registered outside Chicago and not subject to city sticker requirement",
+      "Sticker was purchased within the grace period allowed after registration renewal",
+      "Newly purchased vehicle within the 30-day exemption window"
+    ]
+  },
+  "0964150": {
+    "description": "Street cleaning",
+    "fine": 65,
+    "defenses": [
+      "Street cleaning sign was missing, damaged, or obscured at the posted location",
+      "No street cleaning actually occurred on the date cited",
+      "Vehicle was moved before the street cleaning began",
+      "Incorrect block or street listed on the citation"
+    ]
+  },
+  "0964170": {
+    "description": "Residential permit parking",
+    "fine": 65,
+    "defenses": [
+      "Vehicle displays a valid residential parking permit for that zone",
+      "Permit was displayed but may not have been visible from the officer's vantage point",
+      "Zone signage was absent, damaged, or unclear",
+      "Visitor pass or temporary permit was validly displayed"
+    ]
+  },
+  "0964190": {
+    "description": "Tow zone",
+    "fine": 150,
+    "defenses": [
+      "Tow zone sign was missing or not visible from the parked location",
+      "Vehicle was parked in an area not clearly marked as a tow zone",
+      "Emergency circumstances required temporary stopping",
+      "Sign was recently posted without adequate notice to the public"
+    ]
+  },
+  "0964200": {
+    "description": "Fire hydrant",
+    "fine": 150,
+    "defenses": [
+      "Vehicle was parked more than the required 15 feet from the hydrant",
+      "Hydrant was not clearly visible or was unmarked",
+      "Measurement on citation is incorrect — distance exceeds the prohibited zone",
+      "Vehicle was a licensed emergency or utility vehicle with authorization"
+    ]
+  },
+  "0964210": {
+    "description": "Double parking",
+    "fine": 100,
+    "defenses": [
+      "Vehicle was making a lawful temporary stop for loading or unloading",
+      "Hazard lights were on and vehicle was attended during a brief stop",
+      "No available legal parking within the block at the time of the stop",
+      "Citation location does not match where the vehicle was actually parked"
+    ]
+  },
+  "0964220": {
+    "description": "Crosswalk obstruction",
+    "fine": 150,
+    "defenses": [
+      "Vehicle was not blocking the crosswalk — rear of vehicle did not extend into crosswalk",
+      "No crosswalk markings were present at the cited location",
+      "Citation address or location description does not match the scene",
+      "Vehicle was a licensed delivery vehicle making a required stop"
+    ]
+  },
+  "0976160": {
+    "description": "Expired registration plates",
+    "fine": 100,
+    "defenses": [
+      "Registration was current — renewal sticker was on plate but may have been obstructed",
+      "Renewal was submitted and pending but plates had not yet been updated in the system",
+      "Vehicle was recently purchased and within the temporary permit window",
+      "Plates were current but a database error caused an incorrect expired status"
+    ]
+  },
+  "0964050": {
+    "description": "Rush hour parking",
+    "fine": 100,
+    "defenses": [
+      "Citation was issued outside the posted rush hour restriction hours",
+      "Rush hour restriction sign was missing or not legible at the cited location",
+      "Vehicle was in a lane that does not have a posted rush hour restriction",
+      "Vehicle was actively loading or unloading as permitted under the restriction"
+    ]
+  }
+}

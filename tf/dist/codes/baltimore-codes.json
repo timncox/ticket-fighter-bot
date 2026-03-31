@@ -1,0 +1,73 @@
+{
+  "METER": {
+    "description": "Expired meter",
+    "fine": 52,
+    "defenses": [
+      "Meter was malfunctioning, broken, or out of service at time of citation",
+      "Paid receipt or mobile app (ParkMobile/PayByPhone) confirmation showing valid payment",
+      "Citation was issued before the posted meter enforcement hours began",
+      "Vehicle was not parked beyond the time shown on the meter receipt or app confirmation"
+    ]
+  },
+  "NOPK": {
+    "description": "No parking zone",
+    "fine": 52,
+    "defenses": [
+      "No parking sign was missing, obscured, damaged, or illegible at the time of the violation",
+      "Vehicle was parked outside the restricted hours or days posted on the sign",
+      "Conflicting signs at the location created genuine ambiguity about the restriction",
+      "Sign did not comply with MUTCD placement or spacing requirements"
+    ]
+  },
+  "HYDRANT": {
+    "description": "Parking within 10 feet of a fire hydrant",
+    "fine": 107,
+    "defenses": [
+      "Vehicle was parked more than 10 feet from the hydrant (measurement dispute)",
+      "Hydrant location was not clearly visible, marked, or painted at the curb",
+      "Vehicle was actively attended and would have moved immediately upon request",
+      "Hydrant was out of service or not a city-owned fire suppression hydrant"
+    ]
+  },
+  "DBLPK": {
+    "description": "Double parking",
+    "fine": 107,
+    "defenses": [
+      "Vehicle was actively loading or unloading commercial goods at time of citation",
+      "No legal parking space was available within a reasonable distance",
+      "Vehicle was attended and immediately prepared to move upon request",
+      "Citation location description does not match the actual location of the vehicle"
+    ]
+  },
+  "RESPMT": {
+    "description": "Parking in residential permit zone without permit",
+    "fine": 52,
+    "defenses": [
+      "Vehicle displays a valid residential permit for that zone",
+      "Permit was properly displayed but may have been obscured or fallen",
+      "Vehicle is a visitor covered under the guest permit provisions",
+      "Block or zone designation on the sign was missing or illegible"
+    ]
+  },
+  "SWPG": {
+    "description": "Street cleaning — parking prohibited during posted hours",
+    "fine": 52,
+    "defenses": [
+      "Street cleaning sign was missing, damaged, or obscured at the posted location",
+      "Street cleaning did not actually occur on the cited date",
+      "Vehicle was moved before street cleaning operations began",
+      "Alternate side parking was officially suspended for a holiday or special event",
+      "Incorrect block or street address listed on the citation"
+    ]
+  },
+  "EXPREG": {
+    "description": "Expired registration",
+    "fine": 52,
+    "defenses": [
+      "Registration was renewed prior to or on the date of the violation",
+      "Renewal was pending due to an MVA processing delay beyond the owner's control",
+      "Documentation shows renewal application was submitted before the expiration date",
+      "Vehicle is registered in another state and was compliant under that state's rules"
+    ]
+  }
+}
