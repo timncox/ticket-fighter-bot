@@ -1,0 +1,593 @@
+/**
+ * Ticket Fighter MMP Bot.
+ * Receives MMP webhooks (+ polls inbox as fallback),
+ * handles DM commands for plate management and ticket fighting.
+ */
+
+import express from "express";
+import { createHmac } from "node:crypto";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import cron from "node-cron";
+import { McpClient } from "./mmp-client.js";
+import { TfClient } from "./tf-client.js";
+import {
+  upsertUser,
+  getUser,
+  addUserPlate,
+  removeUserPlate,
+  getUserPlates,
+  getUserTickets,
+} from "./db.js";
+import { runTicketCheck } from "./checker.js";
+
+// --- Environment ---
+
+const PORT = parseInt(process.env.PORT || "3003", 10);
+const MMP_URL = process.env.MMP_URL || "https://mmp.chat/mcp";
+const MMP_BOT_TOKEN = process.env.MMP_BOT_TOKEN || "";
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "";
+const TF_PATH = process.env.TF_PATH || path.join(process.cwd(), "..", "ticket-fighter", "dist", "index.js");
+
+// --- Clients ---
+
+const mmpUrl = MMP_BOT_TOKEN
+  ? `${MMP_URL}?token=${MMP_BOT_TOKEN}`
+  : MMP_URL;
+const mmpClient = new McpClient(mmpUrl);
+const tfClient = new TfClient("node", [TF_PATH]);
+
+// --- Express ---
+
+const app = express();
+app.use(express.json());
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+app.use(express.static(path.join(__dirname, "..", "public")));
+
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", service: "ticket-fighter-bot", timestamp: new Date().toISOString() });
+});
+
+// --- Webhook ---
+
+function verifyWebhook(body: string, signature: string | undefined): boolean {
+  if (!WEBHOOK_SECRET) return true;
+  if (!signature) return false;
+  const expected = createHmac("sha256", WEBHOOK_SECRET).update(body).digest("hex");
+  return signature === expected;
+}
+
+interface MmpWebhookPayload {
+  event: string;
+  message?: {
+    id: string;
+    from: string;
+    from_handle: string;
+    body: string;
+    thread_id?: string;
+    is_group?: boolean;
+  };
+}
+
+app.post("/webhook/mmp", async (req, res) => {
+  const rawBody = JSON.stringify(req.body);
+  if (!verifyWebhook(rawBody, (req.headers["x-mmp-signature"] ?? req.headers["x-webhook-signature"]) as string | undefined)) {
+    res.status(401).json({ error: "Invalid signature" });
+    return;
+  }
+
+  const payload = req.body as MmpWebhookPayload;
+
+  try {
+    if (payload.event === "message" && payload.message) {
+      const msg = payload.message;
+      if (msg.is_group) {
+        await handleGroupMessage(msg);
+      } else {
+        await handleDM(msg);
+      }
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Webhook error:", err);
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// --- Send helpers ---
+
+async function sendDM(handle: string, body: string): Promise<void> {
+  try {
+    await mmpClient.callTool("mmp-send", { to: `@${handle}`, body });
+  } catch (err) {
+    console.error(`Failed to send DM to @${handle}:`, err);
+  }
+}
+
+async function sendGroup(threadId: string, body: string): Promise<void> {
+  try {
+    await mmpClient.callTool("mmp-send", { thread_id: threadId, body });
+  } catch (err) {
+    console.error(`Failed to send to group ${threadId}:`, err);
+  }
+}
+
+// --- Supported cities ---
+
+const SUPPORTED_CITIES = ["nyc", "chicago", "orlando"];
+
+function isValidCity(city: string): boolean {
+  return SUPPORTED_CITIES.includes(city.toLowerCase());
+}
+
+// --- DM handler ---
+
+async function handleDM(msg: MmpWebhookPayload["message"] & {}): Promise<void> {
+  const raw = msg.body.trim();
+  const body = raw.toLowerCase();
+  const fromId = msg.from;
+  const fromHandle = msg.from_handle;
+
+  // Ensure user exists
+  upsertUser(fromId, fromHandle);
+
+  // --- add <plate> <state> <city> ---
+  if (body.startsWith("add ")) {
+    const parts = raw.replace(/^add\s+/i, "").trim().split(/\s+/);
+    if (parts.length < 3) {
+      await sendDM(fromHandle, `Usage: add <plate> <state> <city>\nExample: add ABC1234 NY nyc\n\nSupported cities: ${SUPPORTED_CITIES.join(", ")}`);
+      return;
+    }
+    const [plateNum, state, city] = parts;
+    if (!isValidCity(city)) {
+      await sendDM(fromHandle, `Unsupported city "${city}". Supported: ${SUPPORTED_CITIES.join(", ")}`);
+      return;
+    }
+
+    addUserPlate(fromId, plateNum, state, "PAS", city);
+
+    // Also register with ticket-fighter
+    try {
+      await tfClient.callTool("manage_plates", {
+        action: "add",
+        number: plateNum.toUpperCase(),
+        state: state.toUpperCase(),
+        type: "PAS",
+        city: city.toLowerCase(),
+      });
+    } catch (err) {
+      console.error("Failed to register plate with ticket-fighter:", err);
+    }
+
+    await sendDM(fromHandle,
+      `Added ${plateNum.toUpperCase()} (${state.toUpperCase()}, ${city}).\n` +
+      `I'll check for tickets periodically and alert you when new ones appear.\n` +
+      `Reply "check" to scan now.`);
+    return;
+  }
+
+  // --- remove <plate> <city> ---
+  if (body.startsWith("remove ") || body.startsWith("delete ")) {
+    const parts = raw.replace(/^(remove|delete)\s+/i, "").trim().split(/\s+/);
+    if (parts.length < 2) {
+      await sendDM(fromHandle, `Usage: remove <plate> <city>\nExample: remove ABC1234 nyc`);
+      return;
+    }
+    const [plateNum, city] = parts;
+    const removed = removeUserPlate(fromId, plateNum, city);
+
+    if (removed) {
+      try {
+        await tfClient.callTool("manage_plates", { action: "remove", number: plateNum.toUpperCase(), city: city.toLowerCase() });
+      } catch { /* ignore */ }
+      await sendDM(fromHandle, `Removed ${plateNum.toUpperCase()} (${city}).`);
+    } else {
+      await sendDM(fromHandle, `Plate ${plateNum.toUpperCase()} (${city}) not found in your plates.`);
+    }
+    return;
+  }
+
+  // --- plates / list / my plates ---
+  if (body === "plates" || body === "list" || body === "my plates") {
+    const plates = getUserPlates(fromId);
+    if (plates.length === 0) {
+      await sendDM(fromHandle, `No plates registered. Add one with:\nadd <plate> <state> <city>\nExample: add ABC1234 NY nyc`);
+      return;
+    }
+    const lines = plates.map((p) => `  ${p.plate_number} — ${p.state}, ${p.city}`);
+    await sendDM(fromHandle, `Your plates:\n${lines.join("\n")}`);
+    return;
+  }
+
+  // --- check / check tickets ---
+  if (body === "check" || body === "check tickets" || body === "scan") {
+    const plates = getUserPlates(fromId);
+    if (plates.length === 0) {
+      await sendDM(fromHandle, `No plates to check. Add one first with: add <plate> <state> <city>`);
+      return;
+    }
+
+    await sendDM(fromHandle, `Scanning ${plates.length} plate(s)... this may take a moment.`);
+
+    try {
+      const { newCount, errors } = await runTicketCheck(mmpClient, tfClient);
+      if (newCount === 0 && errors.length === 0) {
+        await sendDM(fromHandle, `No new tickets found. You're in the clear!`);
+      } else if (newCount > 0) {
+        // Notifications already sent by runTicketCheck
+        await sendDM(fromHandle, `Scan complete. Found ${newCount} new ticket(s) — check your messages.`);
+      }
+      if (errors.length > 0) {
+        await sendDM(fromHandle, `Some checks had errors:\n${errors.map((e) => `  ${e}`).join("\n")}`);
+      }
+    } catch (err) {
+      await sendDM(fromHandle, `Error checking tickets: ${(err as Error).message}`);
+    }
+    return;
+  }
+
+  // --- tickets / my tickets ---
+  if (body === "tickets" || body === "my tickets") {
+    const tickets = getUserTickets(fromId);
+    if (tickets.length === 0) {
+      await sendDM(fromHandle, `No known tickets. Run "check" to scan, or "add" a plate first.`);
+      return;
+    }
+    const lines = tickets.slice(0, 10).map((t) => {
+      const amt = t.amount ? ` — $${t.amount}` : "";
+      return `  ${t.violation_number} (${t.city})${amt}${t.description ? `: ${t.description}` : ""}`;
+    });
+    const more = tickets.length > 10 ? `\n  ... and ${tickets.length - 10} more` : "";
+    await sendDM(fromHandle, `Your tickets:\n${lines.join("\n")}${more}\n\nReply "analyze <violation#> <city>" for defense strategy.`);
+    return;
+  }
+
+  // --- analyze <violation#> <city> ---
+  if (body.startsWith("analyze ") || body.startsWith("fight ")) {
+    const parts = raw.replace(/^(analyze|fight)\s+/i, "").trim().split(/\s+/);
+    if (parts.length < 2) {
+      await sendDM(fromHandle, `Usage: analyze <violation#> <city>\nExample: analyze 1234567890 nyc`);
+      return;
+    }
+    const [violationNum, city] = parts;
+    if (!isValidCity(city)) {
+      await sendDM(fromHandle, `Unsupported city "${city}". Supported: ${SUPPORTED_CITIES.join(", ")}`);
+      return;
+    }
+
+    await sendDM(fromHandle, `Analyzing ticket ${violationNum}... gathering evidence and defense strategy.`);
+
+    try {
+      const analysis = await tfClient.call<Record<string, unknown>>("analyze_ticket", {
+        violation_number: violationNum,
+        city: city.toLowerCase(),
+      });
+
+      const lines: string[] = [`Ticket Analysis — ${violationNum} (${city.toUpperCase()})`, ""];
+
+      // Ticket details
+      const details = analysis.ticketDetails as Record<string, unknown> | undefined;
+      if (details) {
+        if (details.violationCode) lines.push(`Violation: ${details.violationCode} — ${details.description || ""}`);
+        if (details.amount) lines.push(`Amount: $${details.amount}`);
+        if (details.location) lines.push(`Location: ${details.location}`);
+        if (details.dateIssued) lines.push(`Date: ${details.dateIssued}`);
+        lines.push("");
+      }
+
+      // Common defenses
+      const defenses = analysis.commonDefenses as string[] | undefined;
+      if (defenses && defenses.length > 0) {
+        lines.push("Common defenses:");
+        for (const d of defenses.slice(0, 5)) {
+          lines.push(`  • ${d}`);
+        }
+        lines.push("");
+      }
+
+      // Evidence
+      const evidence = analysis.evidence as Record<string, unknown> | undefined;
+      if (evidence) {
+        if (evidence.streetViewPaths) lines.push(`Street View imagery gathered.`);
+        if (evidence.ruleText) lines.push(`Traffic rule text retrieved.`);
+        lines.push("");
+      }
+
+      // Past disputes
+      if (analysis.pastDisputes && typeof analysis.pastDisputes === "object") {
+        const past = analysis.pastDisputes as Array<Record<string, unknown>>;
+        if (past.length > 0) {
+          lines.push(`Past disputes for this code: ${past.length} on file.`);
+          lines.push("");
+        }
+      }
+
+      lines.push(`Reply "dispute ${violationNum} ${city}" to generate dispute arguments.`);
+
+      await sendDM(fromHandle, lines.join("\n"));
+    } catch (err) {
+      await sendDM(fromHandle, `Error analyzing ticket: ${(err as Error).message}`);
+    }
+    return;
+  }
+
+  // --- dispute <violation#> <city> ---
+  if (body.startsWith("dispute ")) {
+    const parts = raw.replace(/^dispute\s+/i, "").trim().split(/\s+/);
+    if (parts.length < 2) {
+      await sendDM(fromHandle, `Usage: dispute <violation#> <city>\nExample: dispute 1234567890 nyc`);
+      return;
+    }
+    const [violationNum, city] = parts;
+    if (!isValidCity(city)) {
+      await sendDM(fromHandle, `Unsupported city "${city}". Supported: ${SUPPORTED_CITIES.join(", ")}`);
+      return;
+    }
+
+    await sendDM(fromHandle, `Generating dispute for ticket ${violationNum}...`);
+
+    try {
+      // First analyze to get context
+      const analysis = await tfClient.call<Record<string, unknown>>("analyze_ticket", {
+        violation_number: violationNum,
+        city: city.toLowerCase(),
+      });
+
+      // Build dispute arguments from the analysis
+      const details = analysis.ticketDetails as Record<string, unknown> | undefined;
+      const defenses = analysis.commonDefenses as string[] | undefined;
+
+      let disputeArgs = `I am disputing violation ${violationNum}.`;
+      if (defenses && defenses.length > 0) {
+        disputeArgs += ` ${defenses[0]}`;
+      }
+      if (details?.description) {
+        disputeArgs += ` The citation for "${details.description}" is being contested on the following grounds: `;
+        disputeArgs += (defenses || []).join(". ");
+      }
+
+      // Generate formatted dispute
+      const preview = await tfClient.call<Record<string, unknown>>("generate_dispute", {
+        violation_number: violationNum,
+        city: city.toLowerCase(),
+        arguments: disputeArgs,
+      });
+
+      const lines = [
+        `Dispute Preview — ${violationNum} (${city.toUpperCase()})`,
+        "",
+        `Arguments:`,
+        disputeArgs,
+        "",
+        preview.form_notes ? `Notes: ${preview.form_notes}` : "",
+        "",
+        `Status: ${preview.status}`,
+        "",
+        `To submit this dispute, reply:`,
+        `  submit ${violationNum} ${city}`,
+        ``,
+        `This will submit the dispute to the ${city.toUpperCase()} violations portal.`,
+      ].filter(Boolean);
+
+      await sendDM(fromHandle, lines.join("\n"));
+    } catch (err) {
+      await sendDM(fromHandle, `Error generating dispute: ${(err as Error).message}`);
+    }
+    return;
+  }
+
+  // --- submit <violation#> <city> ---
+  if (body.startsWith("submit ")) {
+    const parts = raw.replace(/^submit\s+/i, "").trim().split(/\s+/);
+    if (parts.length < 2) {
+      await sendDM(fromHandle, `Usage: submit <violation#> <city>`);
+      return;
+    }
+    const [violationNum, city] = parts;
+    if (!isValidCity(city)) {
+      await sendDM(fromHandle, `Unsupported city. Supported: ${SUPPORTED_CITIES.join(", ")}`);
+      return;
+    }
+
+    await sendDM(fromHandle,
+      `Are you sure you want to submit the dispute for ${violationNum} (${city.toUpperCase()})?\n` +
+      `Reply "confirm ${violationNum} ${city}" to proceed.`);
+    return;
+  }
+
+  // --- confirm <violation#> <city> ---
+  if (body.startsWith("confirm ")) {
+    const parts = raw.replace(/^confirm\s+/i, "").trim().split(/\s+/);
+    if (parts.length < 2) {
+      await sendDM(fromHandle, `Usage: confirm <violation#> <city>`);
+      return;
+    }
+    const [violationNum, city] = parts;
+
+    await sendDM(fromHandle, `Submitting dispute for ${violationNum}... this may take a minute.`);
+
+    try {
+      // Re-analyze and generate arguments
+      const analysis = await tfClient.call<Record<string, unknown>>("analyze_ticket", {
+        violation_number: violationNum,
+        city: city.toLowerCase(),
+      });
+      const defenses = analysis.commonDefenses as string[] | undefined;
+      const details = analysis.ticketDetails as Record<string, unknown> | undefined;
+
+      let disputeArgs = `I am disputing violation ${violationNum}.`;
+      if (defenses && defenses.length > 0) {
+        disputeArgs += ` ${defenses.join(". ")}`;
+      }
+
+      const result = await tfClient.call<Record<string, unknown>>("submit_dispute", {
+        violation_number: violationNum,
+        city: city.toLowerCase(),
+        arguments: disputeArgs,
+        confirmed: true,
+      });
+
+      await sendDM(fromHandle,
+        `Dispute submitted for ${violationNum}!\n` +
+        (result.referenceNumber ? `Reference: ${result.referenceNumber}\n` : "") +
+        `\nReply "status ${violationNum} ${city}" to check the outcome later.`);
+    } catch (err) {
+      await sendDM(fromHandle, `Error submitting dispute: ${(err as Error).message}`);
+    }
+    return;
+  }
+
+  // --- status <violation#> <city> ---
+  if (body.startsWith("status ")) {
+    const parts = raw.replace(/^status\s+/i, "").trim().split(/\s+/);
+    if (parts.length < 2) {
+      await sendDM(fromHandle, `Usage: status <violation#> <city>\nExample: status 1234567890 nyc`);
+      return;
+    }
+    const [violationNum, city] = parts;
+
+    try {
+      const status = await tfClient.call<Record<string, unknown>>("check_status", {
+        violation_number: violationNum,
+        city: city.toLowerCase(),
+      });
+
+      const lines = [
+        `Status — ${violationNum} (${city.toUpperCase()})`,
+        status.disposition ? `  Disposition: ${status.disposition}` : null,
+        status.status ? `  Status: ${status.status}` : null,
+        status.amount_due ? `  Amount due: $${status.amount_due}` : null,
+        status.hearing_date ? `  Hearing: ${status.hearing_date}` : null,
+      ].filter(Boolean);
+
+      await sendDM(fromHandle, lines.join("\n") || `No status information available for ${violationNum}.`);
+    } catch (err) {
+      await sendDM(fromHandle, `Error checking status: ${(err as Error).message}`);
+    }
+    return;
+  }
+
+  // --- help / default ---
+  await sendDM(fromHandle,
+    `Ticket Fighter Bot — Commands:\n` +
+    `\n` +
+    `  add <plate> <state> <city> — Monitor a plate\n` +
+    `    Example: add ABC1234 NY nyc\n` +
+    `  remove <plate> <city> — Stop monitoring\n` +
+    `  plates — List your plates\n` +
+    `  check — Scan for new tickets now\n` +
+    `  tickets — Show known tickets\n` +
+    `  analyze <violation#> <city> — Evidence & defense strategy\n` +
+    `  dispute <violation#> <city> — Generate dispute\n` +
+    `  submit <violation#> <city> — Submit dispute\n` +
+    `  status <violation#> <city> — Check dispute outcome\n` +
+    `  help — Show this message\n` +
+    `\n` +
+    `Supported cities: ${SUPPORTED_CITIES.join(", ")}\n` +
+    `\n` +
+    `I check for new tickets every 30 minutes and alert you automatically.`);
+}
+
+// --- Group message handler ---
+
+async function handleGroupMessage(msg: MmpWebhookPayload["message"] & {}): Promise<void> {
+  const body = msg.body.trim().toLowerCase();
+  const threadId = msg.thread_id;
+  if (!threadId) return;
+
+  if (body === "help") {
+    await sendGroup(threadId,
+      `Ticket Fighter Bot — DM me to get started!\n` +
+      `Send me "add <plate> <state> <city>" to monitor your plates.`);
+  }
+}
+
+// --- Periodic ticket checking ---
+
+// Every 30 minutes
+cron.schedule("*/30 * * * *", async () => {
+  console.log("[cron] Running periodic ticket check...");
+  try {
+    const { newCount, errors } = await runTicketCheck(mmpClient, tfClient);
+    console.log(`[cron] Check complete: ${newCount} new tickets, ${errors.length} errors`);
+  } catch (err) {
+    console.error("[cron] Ticket check failed:", err);
+  }
+});
+
+// --- Inbox polling fallback ---
+
+const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL || "30000", 10);
+let lastSeenMessageId: string | null = null;
+
+async function pollInbox(): Promise<void> {
+  try {
+    const inbox = await mmpClient.call<{
+      messages: Array<{
+        id: string;
+        thread_id: string;
+        thread_type?: string;
+        from_handle: string;
+        body: string;
+      }>;
+    }>("mmp-inbox", {});
+
+    for (const msg of inbox.messages || []) {
+      if (msg.from_handle === "ticket_fighter") continue;
+      if (msg.id === lastSeenMessageId) break;
+
+      if (!lastSeenMessageId) {
+        lastSeenMessageId = msg.id;
+        console.log(`[poll] Initial sync — latest from @${msg.from_handle}`);
+        break;
+      }
+
+      lastSeenMessageId = msg.id;
+      console.log(`[poll] New message from @${msg.from_handle}: ${msg.body.slice(0, 80)}`);
+
+      const isDM = msg.thread_type === "dm" || !msg.thread_type;
+      if (isDM) {
+        await handleDM({
+          id: msg.id,
+          from: `user:${msg.from_handle}`,
+          from_handle: msg.from_handle,
+          body: msg.body,
+          is_group: false,
+          thread_id: msg.thread_id,
+        });
+      } else {
+        await handleGroupMessage({
+          id: msg.id,
+          from: `user:${msg.from_handle}`,
+          from_handle: msg.from_handle,
+          body: msg.body,
+          is_group: true,
+          thread_id: msg.thread_id,
+        });
+      }
+    }
+  } catch (err) {
+    console.error("[poll] Error:", (err as Error).message);
+  }
+}
+
+// --- Start ---
+
+app.listen(PORT, async () => {
+  console.log(`ticket-fighter-bot listening on :${PORT}`);
+
+  // Connect to ticket-fighter subprocess
+  try {
+    await tfClient.connect();
+    console.log("ticket-fighter MCP client connected");
+  } catch (err) {
+    console.error("Failed to connect to ticket-fighter:", err);
+  }
+
+  console.log(`Polling MMP inbox every ${POLL_INTERVAL / 1000}s`);
+  setInterval(pollInbox, POLL_INTERVAL);
+  setTimeout(pollInbox, 5000);
+});
+
+export { mmpClient, tfClient, app };

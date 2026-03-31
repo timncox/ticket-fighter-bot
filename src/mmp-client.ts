@@ -1,0 +1,93 @@
+/**
+ * Lightweight HTTP MCP client for calling tools on MMP.
+ * Reused pattern from nyc-civic-bot.
+ */
+
+const TIMEOUT = 30_000;
+
+interface McpToolResult {
+  content: Array<{ type: string; text: string }>;
+  isError?: boolean;
+}
+
+export class McpClient {
+  private baseUrl: string;
+  private sessionId: string | null = null;
+  private nextId = 1;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+
+  private async request(method: string, params?: unknown): Promise<unknown> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Accept": "application/json, text/event-stream",
+    };
+    if (this.sessionId) {
+      headers["mcp-session-id"] = this.sessionId;
+    }
+
+    const res = await fetch(this.baseUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method,
+        params: params ?? {},
+        id: this.nextId++,
+      }),
+      signal: AbortSignal.timeout(TIMEOUT),
+    });
+
+    const sid = res.headers.get("mcp-session-id");
+    if (sid) this.sessionId = sid;
+
+    if (!res.ok) {
+      throw new Error(`MCP ${res.status}: ${await res.text()}`);
+    }
+
+    const contentType = res.headers.get("content-type") || "";
+    let data: any;
+
+    if (contentType.includes("text/event-stream")) {
+      const text = await res.text();
+      for (const line of text.split("\n")) {
+        if (line.startsWith("data: ")) {
+          data = JSON.parse(line.slice(6));
+          break;
+        }
+      }
+      if (!data) throw new Error("No data in SSE response");
+    } else {
+      data = (await res.json()) as any;
+    }
+
+    if (data.error) {
+      throw new Error(`MCP error: ${data.error.message}`);
+    }
+    return data.result;
+  }
+
+  async connect(): Promise<void> {
+    await this.request("initialize", {
+      protocolVersion: "2025-03-26",
+      capabilities: {},
+      clientInfo: { name: "ticket-fighter-bot", version: "1.0.0" },
+    });
+  }
+
+  async callTool(name: string, args: Record<string, unknown> = {}): Promise<McpToolResult> {
+    if (!this.sessionId) await this.connect();
+    return (await this.request("tools/call", { name, arguments: args })) as McpToolResult;
+  }
+
+  async call<T = unknown>(name: string, args: Record<string, unknown> = {}): Promise<T> {
+    const result = await this.callTool(name, args);
+    if (result.isError) {
+      throw new Error(result.content?.[0]?.text ?? "Tool error");
+    }
+    const text = result.content?.[0]?.text ?? "{}";
+    return JSON.parse(text) as T;
+  }
+}

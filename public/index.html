@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ticket Fighter Bot</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e5e5e5; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { max-width: 560px; padding: 48px 24px; text-align: center; }
+    h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; color: #fff; }
+    .subtitle { color: #a3a3a3; font-size: 1.1rem; margin-bottom: 32px; }
+    .commands { text-align: left; background: #171717; border: 1px solid #262626; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+    .commands h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #737373; margin-bottom: 16px; }
+    .cmd { margin-bottom: 12px; }
+    .cmd code { background: #262626; padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.9rem; color: #22d3ee; }
+    .cmd span { color: #a3a3a3; font-size: 0.9rem; }
+    .cta { color: #737373; font-size: 0.9rem; }
+    .cta a { color: #22d3ee; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Ticket Fighter Bot</h1>
+    <p class="subtitle">Parking ticket detection & dispute assistant on MMP</p>
+    <div class="commands">
+      <h2>Commands (DM @ticket_fighter)</h2>
+      <div class="cmd"><code>add ABC1234 NY nyc</code> <span>— Monitor a plate</span></div>
+      <div class="cmd"><code>check</code> <span>— Scan for tickets now</span></div>
+      <div class="cmd"><code>analyze 1234567 nyc</code> <span>— Get defense strategy</span></div>
+      <div class="cmd"><code>dispute 1234567 nyc</code> <span>— Generate dispute</span></div>
+      <div class="cmd"><code>submit 1234567 nyc</code> <span>— Submit to city portal</span></div>
+      <div class="cmd"><code>status 1234567 nyc</code> <span>— Check outcome</span></div>
+    </div>
+    <p class="cta">Message <a href="https://mmp.chat">@ticket_fighter on MMP</a> to get started</p>
+  </div>
+</body>
+</html>
