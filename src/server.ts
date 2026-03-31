@@ -59,13 +59,44 @@ app.get("/auth/gmail/callback", async (req, res) => {
   }
 
   try {
-    // Exchange the code for tokens via ticket-fighter
-    // The gmail-api module handles token storage
-    const { exchangeCode } = await import(
-      /* webpackIgnore: true */
-      process.env.TF_GMAIL_API_PATH || "../../tf/dist/gmail-api.js"
-    );
-    await exchangeCode(code);
+    // Exchange the code for tokens directly via Google's token endpoint
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID || "",
+        client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
+        redirect_uri: process.env.GOOGLE_REDIRECT_URI || "https://tf.mmp.chat/auth/gmail/callback",
+        grant_type: "authorization_code",
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      const text = await tokenRes.text();
+      throw new Error(`Token exchange failed: ${tokenRes.status} ${text}`);
+    }
+
+    const data = await tokenRes.json() as {
+      access_token: string;
+      refresh_token?: string;
+      expires_in: number;
+    };
+
+    // Store tokens in ticket-fighter's config directory via the filesystem
+    // (shared between bot and tf subprocess)
+    const os = await import("node:os");
+    const fs = await import("node:fs");
+    const nodePath = await import("node:path");
+    const authDir = nodePath.default.join(os.default.homedir(), ".ticket-fighter", "auth", "gmail");
+    fs.default.mkdirSync(authDir, { recursive: true });
+    const tokenPath = nodePath.default.join(authDir, "gmail-oauth-tokens.json");
+    fs.default.writeFileSync(tokenPath, JSON.stringify({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token || "",
+      expires_at: Date.now() + data.expires_in * 1000,
+    }, null, 2));
+
     res.send(
       `<html><body style="font-family:monospace;background:#08080A;color:#F0EBE0;display:flex;align-items:center;justify-content:center;min-height:100vh">` +
       `<div style="text-align:center"><h1 style="color:#FF2B2B">Gmail Connected!</h1>` +
