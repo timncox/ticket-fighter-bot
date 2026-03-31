@@ -1,19 +1,10 @@
 FROM node:24-slim AS build
 WORKDIR /app
-
-# Build the bot
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY tsconfig.json ./
 COPY src/ src/
 RUN npm run build
-
-# Build ticket-fighter (copy from sibling)
-COPY ticket-fighter/package.json ticket-fighter/package-lock.json ticket-fighter/
-RUN cd ticket-fighter && npm ci
-COPY ticket-fighter/tsconfig.json ticket-fighter/
-COPY ticket-fighter/src/ ticket-fighter/src/
-RUN cd ticket-fighter && npm run build
 
 FROM node:24-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -32,15 +23,15 @@ RUN npm ci --omit=dev
 COPY --from=build /app/dist dist/
 COPY public/ public/
 
-# Ticket-fighter deps + dist
-COPY ticket-fighter/package.json ticket-fighter/package-lock.json ticket-fighter/
-RUN cd ticket-fighter && npm ci --omit=dev
-COPY --from=build /app/ticket-fighter/dist ticket-fighter/dist/
+# Ticket-fighter (pre-built dist + deps)
+COPY tf/package.json tf/package.json
+RUN cd tf && npm install --omit=dev
+COPY tf/dist/ tf/dist/
 
 # Install Playwright browsers
-RUN cd ticket-fighter && npx playwright install chromium
+RUN cd tf && npx playwright install chromium
 
 RUN mkdir -p data
-ENV TF_PATH=/app/ticket-fighter/dist/index.js
+ENV TF_PATH=/app/tf/dist/index.js
 EXPOSE 3003
 CMD ["node", "dist/server.js"]

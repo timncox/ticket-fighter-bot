@@ -27,7 +27,7 @@ const PORT = parseInt(process.env.PORT || "3003", 10);
 const MMP_URL = process.env.MMP_URL || "https://mmp.chat/mcp";
 const MMP_BOT_TOKEN = process.env.MMP_BOT_TOKEN || "";
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "";
-const TF_PATH = process.env.TF_PATH || path.join(process.cwd(), "..", "ticket-fighter", "dist", "index.js");
+const TF_PATH = process.env.TF_PATH || path.join(process.cwd(), "tf", "dist", "index.js");
 
 // --- Clients ---
 
