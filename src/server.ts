@@ -197,7 +197,12 @@ async function sendGroup(threadId: string, body: string): Promise<void> {
 
 // --- Supported cities ---
 
-const SUPPORTED_CITIES = ["nyc", "chicago", "orlando"];
+const SUPPORTED_CITIES = [
+  "nyc", "chicago", "orlando", "boston", "miami", "charlotte", "denver",
+  "dallas", "raleigh", "baltimore", "dc", "atlanta", "sandiego", "detroit",
+  "pittsburgh", "milwaukee", "sacramento", "neworleans", "sanfrancisco",
+  "detroit_etims", "cleveland", "columbus", "oakland", "santamonica",
+];
 
 function isValidCity(city: string): boolean {
   return SUPPORTED_CITIES.includes(city.toLowerCase());
