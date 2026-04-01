@@ -45,6 +45,11 @@ export function getDb(): Database.Database {
       dismissed INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY (violation_number, city)
     );
+
+    CREATE TABLE IF NOT EXISTS bot_state (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
 
   return db;
@@ -146,6 +151,17 @@ export function markNotified(violationNumber: string, city: string): void {
 
 export function getUnnotifiedTickets(): KnownTicket[] {
   return getDb().prepare("SELECT * FROM known_tickets WHERE notified = 0").all() as KnownTicket[];
+}
+
+// --- Bot state ---
+
+export function getState(key: string): string | null {
+  const row = getDb().prepare("SELECT value FROM bot_state WHERE key = ?").get(key) as { value: string } | undefined;
+  return row?.value ?? null;
+}
+
+export function setState(key: string, value: string): void {
+  getDb().prepare("INSERT OR REPLACE INTO bot_state (key, value) VALUES (?, ?)").run(key, value);
 }
 
 export function getUserTickets(userId: string): KnownTicket[] {
