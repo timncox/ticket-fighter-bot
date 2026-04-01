@@ -118,6 +118,8 @@ function verifyWebhook(body: string, signature: string | undefined): boolean {
 
 interface MmpWebhookPayload {
   event: string;
+  content_type?: string;
+  call_id?: string;
   message?: {
     id: string;
     from: string;
@@ -138,6 +140,28 @@ app.post("/webhook/mmp", async (req, res) => {
   const payload = req.body as MmpWebhookPayload;
 
   try {
+    // Handle structured tool_call messages (Agent Protocol)
+    if (payload.content_type === "tool_call" && payload.message) {
+      const msg = payload.message;
+      try {
+        const { tool, call_id, input } = JSON.parse(msg.body);
+        await handleToolCall(msg.from_handle, msg.from, call_id, tool, input || {});
+      } catch (err) {
+        console.error("Tool call error:", err);
+        // Try to send error result if we have a call_id
+        if (payload.call_id) {
+          await mmpClient.callTool("mmp-send", {
+            to: `@${msg.from_handle}`,
+            body: JSON.stringify({ call_id: payload.call_id, output: null, error: (err as Error).message }),
+            content_type: "tool_result",
+            call_id: payload.call_id,
+          }).catch(() => {});
+        }
+      }
+      res.json({ ok: true });
+      return;
+    }
+
     if (payload.event === "message" && payload.message) {
       const msg = payload.message;
       if (msg.is_group) {
@@ -177,6 +201,118 @@ const SUPPORTED_CITIES = ["nyc", "chicago", "orlando"];
 
 function isValidCity(city: string): boolean {
   return SUPPORTED_CITIES.includes(city.toLowerCase());
+}
+
+// --- Structured tool_call handler (Agent Protocol) ---
+
+async function handleToolCall(
+  fromHandle: string,
+  fromId: string,
+  callId: string,
+  toolName: string,
+  input: Record<string, unknown>,
+): Promise<void> {
+  upsertUser(fromId, fromHandle);
+
+  let output: Record<string, unknown> = {};
+  let error: string | null = null;
+
+  try {
+    switch (toolName) {
+      case "add_plate": {
+        const { plate, state, city } = input as { plate: string; state: string; city: string };
+        if (!plate || !state || !city) { error = "Missing required fields: plate, state, city"; break; }
+        if (!isValidCity(city)) { error = `Unsupported city "${city}". Supported: ${SUPPORTED_CITIES.join(", ")}`; break; }
+        addUserPlate(fromId, plate, state, "PAS", city);
+        try {
+          await tfClient.callTool("manage_plates", { action: "add", number: plate.toUpperCase(), state: state.toUpperCase(), type: "PAS", city: city.toLowerCase() });
+        } catch { /* best effort */ }
+        output = { success: true, plate: plate.toUpperCase(), state: state.toUpperCase(), city };
+        break;
+      }
+      case "remove_plate": {
+        const { plate, city } = input as { plate: string; city: string };
+        if (!plate || !city) { error = "Missing required fields: plate, city"; break; }
+        const removed = removeUserPlate(fromId, plate, city);
+        if (removed) {
+          try { await tfClient.callTool("manage_plates", { action: "remove", number: plate.toUpperCase(), city: city.toLowerCase() }); } catch { /* ignore */ }
+          output = { success: true, removed: true };
+        } else {
+          output = { success: false, removed: false, message: `Plate ${plate.toUpperCase()} (${city}) not found` };
+        }
+        break;
+      }
+      case "list_plates": {
+        const plates = getUserPlates(fromId);
+        output = { plates: plates.map(p => ({ plate: p.plate_number, state: p.state, city: p.city })) };
+        break;
+      }
+      case "check_tickets": {
+        const plates = getUserPlates(fromId);
+        if (plates.length === 0) { output = { error: "No plates registered" }; break; }
+        const { newCount, errors } = await runTicketCheck(mmpClient, tfClient);
+        output = { new_tickets: newCount, errors };
+        break;
+      }
+      case "list_tickets": {
+        const tickets = getUserTickets(fromId);
+        output = { tickets: tickets.map(t => ({ violation_number: t.violation_number, city: t.city, amount: t.amount, description: t.description })) };
+        break;
+      }
+      case "analyze_ticket": {
+        const { violation_number, city } = input as { violation_number: string; city: string };
+        if (!violation_number || !city) { error = "Missing required fields: violation_number, city"; break; }
+        if (!isValidCity(city)) { error = `Unsupported city "${city}"`; break; }
+        const analysis = await tfClient.call<Record<string, unknown>>("analyze_ticket", { violation_number, city: city.toLowerCase() });
+        output = analysis;
+        break;
+      }
+      case "generate_dispute": {
+        const { violation_number, city } = input as { violation_number: string; city: string };
+        if (!violation_number || !city) { error = "Missing required fields: violation_number, city"; break; }
+        if (!isValidCity(city)) { error = `Unsupported city "${city}"`; break; }
+        const analysis = await tfClient.call<Record<string, unknown>>("analyze_ticket", { violation_number, city: city.toLowerCase() });
+        const defenses = analysis.commonDefenses as string[] | undefined;
+        const details = analysis.ticketDetails as Record<string, unknown> | undefined;
+        let disputeArgs = `I am disputing violation ${violation_number}.`;
+        if (defenses?.length) disputeArgs += ` ${defenses.join(". ")}`;
+        const preview = await tfClient.call<Record<string, unknown>>("generate_dispute", { violation_number, city: city.toLowerCase(), arguments: disputeArgs });
+        output = { ...preview, arguments: disputeArgs };
+        break;
+      }
+      case "submit_dispute": {
+        const { violation_number, city } = input as { violation_number: string; city: string };
+        if (!violation_number || !city) { error = "Missing required fields: violation_number, city"; break; }
+        if (!isValidCity(city)) { error = `Unsupported city "${city}"`; break; }
+        const analysis = await tfClient.call<Record<string, unknown>>("analyze_ticket", { violation_number, city: city.toLowerCase() });
+        const defenses = analysis.commonDefenses as string[] | undefined;
+        let disputeArgs = `I am disputing violation ${violation_number}.`;
+        if (defenses?.length) disputeArgs += ` ${defenses.join(". ")}`;
+        const result = await tfClient.call<Record<string, unknown>>("submit_dispute", { violation_number, city: city.toLowerCase(), arguments: disputeArgs, confirmed: true });
+        output = result;
+        break;
+      }
+      case "check_status": {
+        const { violation_number, city } = input as { violation_number: string; city: string };
+        if (!violation_number || !city) { error = "Missing required fields: violation_number, city"; break; }
+        const status = await tfClient.call<Record<string, unknown>>("check_status", { violation_number, city: city.toLowerCase() });
+        output = status;
+        break;
+      }
+      default:
+        error = `Unknown tool: ${toolName}`;
+    }
+  } catch (err) {
+    error = (err as Error).message;
+  }
+
+  // Send tool_result back
+  await mmpClient.callTool("mmp-send", {
+    to: `@${fromHandle}`,
+    body: JSON.stringify({ call_id: callId, output: output!, error }),
+    content_type: "tool_result",
+    call_id: callId,
+  });
 }
 
 // --- DM handler ---
@@ -601,6 +737,8 @@ async function pollInbox(): Promise<void> {
         thread_type?: string;
         from_handle: string;
         body: string;
+        content_type?: string;
+        call_id?: string;
       }>;
     }>("mmp-inbox", {});
 
@@ -616,6 +754,17 @@ async function pollInbox(): Promise<void> {
 
       lastSeenMessageId = msg.id;
       console.log(`[poll] New message from @${msg.from_handle}: ${msg.body.slice(0, 80)}`);
+
+      // Handle tool_call messages from polling
+      if (msg.content_type === "tool_call") {
+        try {
+          const { tool, call_id, input } = JSON.parse(msg.body);
+          await handleToolCall(msg.from_handle, `user:${msg.from_handle}`, call_id, tool, input || {});
+        } catch (err) {
+          console.error("[poll] Tool call error:", err);
+        }
+        continue;
+      }
 
       const isDM = msg.thread_type === "dm" || !msg.thread_type;
       if (isDM) {
@@ -654,6 +803,27 @@ app.listen(PORT, async () => {
     console.log("ticket-fighter MCP client connected");
   } catch (err) {
     console.error("Failed to connect to ticket-fighter:", err);
+  }
+
+  // Advertise agent protocol capabilities
+  try {
+    await mmpClient.callTool("mmp-set_profile", {
+      type: "bot",
+      capabilities: JSON.stringify([
+        { name: "add_plate", description: "Monitor a license plate for parking tickets", input_schema: { plate: { type: "string", required: true }, state: { type: "string", required: true }, city: { type: "string", required: true } } },
+        { name: "remove_plate", description: "Stop monitoring a license plate", input_schema: { plate: { type: "string", required: true }, city: { type: "string", required: true } } },
+        { name: "list_plates", description: "List all monitored license plates" },
+        { name: "check_tickets", description: "Scan all monitored plates for new tickets now" },
+        { name: "list_tickets", description: "Show all known parking tickets" },
+        { name: "analyze_ticket", description: "Get evidence and defense strategy for a ticket", input_schema: { violation_number: { type: "string", required: true }, city: { type: "string", required: true } } },
+        { name: "generate_dispute", description: "Generate a dispute letter for a ticket", input_schema: { violation_number: { type: "string", required: true }, city: { type: "string", required: true } } },
+        { name: "submit_dispute", description: "Submit a dispute to the violations portal", input_schema: { violation_number: { type: "string", required: true }, city: { type: "string", required: true } } },
+        { name: "check_status", description: "Check the status/outcome of a ticket or dispute", input_schema: { violation_number: { type: "string", required: true }, city: { type: "string", required: true } } },
+      ]),
+    });
+    console.log("Agent protocol capabilities advertised");
+  } catch (err) {
+    console.error("Failed to set bot profile:", err);
   }
 
   console.log(`Polling MMP inbox every ${POLL_INTERVAL / 1000}s`);
