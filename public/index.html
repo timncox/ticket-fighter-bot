@@ -369,6 +369,90 @@
 
     .mmp-url:hover { border-color: var(--red); }
 
+    /* --- Two paths --- */
+    .paths {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      max-width: 860px;
+      margin: 48px auto 0;
+      text-align: left;
+    }
+
+    .path-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 36px 32px;
+      transition: border-color 0.3s;
+    }
+
+    .path-card:hover { border-color: var(--red); }
+
+    .path-label {
+      font-size: 0.6rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 12px;
+    }
+
+    .path-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.6rem;
+      letter-spacing: 0.04em;
+      color: var(--cream);
+      margin-bottom: 8px;
+    }
+
+    .path-desc {
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    .path-url {
+      display: inline-block;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--cream);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 10px 20px;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      transition: border-color 0.2s;
+      margin-bottom: 24px;
+    }
+
+    .path-url:hover { border-color: var(--red); }
+
+    .path-examples {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .path-example {
+      font-size: 0.75rem;
+      color: var(--muted);
+      background: var(--bg);
+      padding: 10px 14px;
+      border-left: 2px solid var(--border);
+      line-height: 1.5;
+    }
+
+    .path-example strong {
+      color: var(--cream);
+      font-weight: 500;
+    }
+
+    @media (max-width: 640px) {
+      .paths { grid-template-columns: 1fr; }
+      .path-card { padding: 28px 20px; }
+    }
+
     /* --- Footer --- */
     footer {
       border-top: 1px solid var(--border);
@@ -532,9 +616,9 @@
       Ticket Fighter scrapes city violation portals directly. No API keys, no middlemen.
     </p>
     <div class="cities">
-      <div class="city-tag active">NYC</div>
-      <div class="city-tag active">CHICAGO</div>
-      <div class="city-tag active">ORLANDO</div>
+      <div class="city-tag">NYC</div>
+      <div class="city-tag">CHICAGO</div>
+      <div class="city-tag">ORLANDO</div>
       <div class="city-tag">BOSTON</div>
       <div class="city-tag">MIAMI</div>
       <div class="city-tag">CHARLOTTE</div>
@@ -560,17 +644,48 @@
   <!-- MMP / CTA -->
   <section class="mmp-section" id="start">
     <div class="mmp-badge">Powered by MMP</div>
-    <h2 class="mmp-title">MESSAGE THE BOT.<br>START FIGHTING.</h2>
+    <h2 class="mmp-title">TWO WAYS TO<br>START FIGHTING.</h2>
     <p class="mmp-desc">
       Ticket Fighter runs on <a href="https://mmp.chat" style="color: var(--cream); text-decoration: underline; text-underline-offset: 3px;">MMP</a> &mdash; the messaging protocol for AI assistants.
-      Add the MMP server to Claude, ChatGPT, or any MCP-compatible client and DM <strong style="color: var(--cream);">@ticket_fighter</strong>.
+      Install the MCP server in Claude, ChatGPT, or any MCP-compatible client.
     </p>
-    <div class="mmp-url">mmp.chat/mcp</div>
+    <div class="paths">
+      <div class="path-card">
+        <div class="path-label">Option 1 &mdash; Direct</div>
+        <div class="path-title">INSTALL TICKET FIGHTER</div>
+        <div class="path-desc">Add the Ticket Fighter MCP directly. Your AI assistant gets tools to manage plates, check tickets, and generate disputes.</div>
+        <a href="https://tf.mmp.chat/mcp" class="path-url">tf.mmp.chat/mcp</a>
+        <div style="font-size: 0.6rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px;">Example prompts</div>
+        <div class="path-examples">
+          <div class="path-example"><strong>"Add my plate ABC1234, New York state, for NYC"</strong></div>
+          <div class="path-example"><strong>"Check all my plates for new tickets"</strong></div>
+          <div class="path-example"><strong>"Analyze ticket #1234567890 and build a dispute"</strong></div>
+        </div>
+      </div>
+      <div class="path-card">
+        <div class="path-label">Option 2 &mdash; MMP Network</div>
+        <div class="path-title">MESSAGE @TICKET_FIGHTER</div>
+        <div class="path-desc">Install the full MMP network and message the bot directly. Talk to Ticket Fighter like a person &mdash; plus message any other bot on MMP.</div>
+        <a href="https://mmp.chat/mcp" class="path-url">mmp.chat/mcp</a>
+        <div style="font-size: 0.6rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px;">Example messages</div>
+        <div class="path-examples">
+          <div class="path-example"><strong>"Send @ticket_fighter: add ABC1234 NY nyc"</strong></div>
+          <div class="path-example"><strong>"Send @ticket_fighter: check"</strong></div>
+          <div class="path-example"><strong>"Send @ticket_fighter: dispute 1234567890 nyc"</strong></div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <footer>
     <span>&copy; 2026 Ticket Fighter</span>
-    <a href="https://mmp.chat">mmp.chat</a>
+    <span>
+      <a href="https://github.com/timncox/ticket-fighter">MCP Server</a>
+      &nbsp;&bull;&nbsp;
+      <a href="https://github.com/timncox/ticket-fighter-bot">Bot</a>
+      &nbsp;&bull;&nbsp;
+      <a href="https://mmp.chat">mmp.chat</a>
+    </span>
   </footer>
 
 </body>
